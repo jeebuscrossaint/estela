@@ -241,9 +241,15 @@ fn type_label(qtype: &str) -> &str {
 
 fn resolve_figure(qdata: &Value, bank_dir: &Path) -> Option<PathBuf> {
     let fig = qdata.get("figure").and_then(|v| v.as_str())?;
+    let basename = Path::new(fig).file_name()?;
     let candidates = [
         bank_dir.join(fig),
-        bank_dir.join("Figures").join(Path::new(fig).file_name()?),
+        bank_dir.join("Figures").join(basename),
+        bank_dir.join("Figure").join(basename),
+        bank_dir.join("figures").join(basename),
+        bank_dir.join("figure").join(basename),
+        bank_dir.join("Images").join(basename),
+        bank_dir.join("images").join(basename),
     ];
     candidates.into_iter().find(|p| p.exists())
 }
