@@ -1,18 +1,8 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-.venv/
-venv/
-*.egg-info/
-dist/
-build/
-
-# uv
-.python-version
-
-# Tauri
+# Rust / Tauri
 src-tauri/target/
+
+# Node
+node_modules/
 
 # OS
 .DS_Store
