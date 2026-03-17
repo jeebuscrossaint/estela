@@ -1,10 +1,11 @@
 // Prevents extra console window on Windows in release
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use base64::Engine as _;
 use regex::Regex;
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Constants
@@ -225,13 +226,40 @@ fn type_label(qtype: &str) -> &str {
     }
 }
 
-fn q_to_latex(q: &Value, num: usize) -> String {
+fn resolve_figure(qdata: &Value, bank_dir: &Path) -> Option<PathBuf> {
+    let fig = qdata.get("figure").and_then(|v| v.as_str())?;
+    let candidates = [
+        bank_dir.join(fig),
+        bank_dir.join("Figures").join(Path::new(fig).file_name()?),
+    ];
+    candidates.into_iter().find(|p| p.exists())
+}
+
+fn figure_to_base64(path: &Path) -> Option<String> {
+    let bytes = std::fs::read(path).ok()?;
+    let mime = match path.extension().and_then(|e| e.to_str()) {
+        Some("png")        => "image/png",
+        Some("jpg") | Some("jpeg") => "image/jpeg",
+        Some("gif")        => "image/gif",
+        Some("svg")        => "image/svg+xml",
+        _                  => "image/png",
+    };
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+    Some(format!("data:{};base64,{}", mime, b64))
+}
+
+fn q_to_latex(q: &Value, num: usize, bank_dir: &Path) -> String {
     let qtype = get_qtype(q);
     let qdata = q.get(&qtype).cloned().unwrap_or(json!({}));
     let body = html2tex(qdata.get("text").and_then(|v| v.as_str()).unwrap_or(""));
+    let fig_latex = resolve_figure(&qdata, bank_dir)
+        .map(|p| format!("\n\\begin{{center}}\\includegraphics[max width=0.8\\linewidth]{{{}}}\\end{{center}}\n",
+            p.to_string_lossy()))
+        .unwrap_or_default();
     let mut out = vec![
         format!("\\question[3] % Q{}", num),
         body,
+        fig_latex,
         String::new(),
     ];
 
@@ -506,17 +534,43 @@ fn export_html(cart: Value, version: i64, title: String, include_answers: bool) 
 // ══════════════════════════════════════════════════════════════════════════════
 
 fn build_exam_latex(cart: &Value, version: i64, title: &str) -> String {
-    let qs = pick_questions(cart, version);
-    let body: String = qs.iter().enumerate()
-        .map(|(i, q)| q_to_latex(q, i + 1))
+    let mut qs_with_dir: Vec<(Value, PathBuf)> = Vec::new();
+    let mut graphicspaths: Vec<String> = Vec::new();
+    if let Some(arr) = cart.as_array() {
+        for item in arr {
+            let raw = item.get("rawData").cloned().unwrap_or(json!({}));
+            let questions = raw.get("questions").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+            if questions.is_empty() { continue; }
+            let bank_path = item.get("path").and_then(|v| v.as_str()).unwrap_or("");
+            let bank_dir = Path::new(bank_path).parent().unwrap_or(Path::new(".")).to_path_buf();
+            let dir_str = format!("{{{}/}}", bank_dir.to_string_lossy().replace('\\', "/"));
+            if !graphicspaths.contains(&dir_str) { graphicspaths.push(dir_str); }
+            let figs_dir = bank_dir.join("Figures");
+            if figs_dir.is_dir() {
+                let fd = format!("{{{}/}}", figs_dir.to_string_lossy().replace('\\', "/"));
+                if !graphicspaths.contains(&fd) { graphicspaths.push(fd); }
+            }
+            let qn = item.get("qn").and_then(|v| v.as_i64()).unwrap_or(1).max(1) as usize;
+            let n = questions.len();
+            let start = (((version - 1) as usize * qn) % n) as usize;
+            for i in 0..qn {
+                qs_with_dir.push((questions[(start + i) % n].clone(), bank_dir.clone()));
+            }
+        }
+    }
+    let body: String = qs_with_dir.iter().enumerate()
+        .map(|(i, (q, dir))| q_to_latex(q, i + 1, dir))
         .collect::<Vec<_>>()
         .join("\n\n");
+    let graphicspath_line = if !graphicspaths.is_empty() {
+        format!("\\graphicspath{{{}}}\n", graphicspaths.join(""))
+    } else { String::new() };
 
     format!(
         r"\documentclass[12pt,addpoints]{{exam}}
-\usepackage{{amsmath,amssymb,physics,geometry,microtype}}
+\usepackage{{amsmath,amssymb,physics,geometry,microtype,graphicx}}
 \geometry{{margin=1in}}
-%\printanswers  % uncomment to show answers (e.g. for instructor copy)
+{}%\printanswers  % uncomment to show answers (e.g. for instructor copy)
 
 \begin{{document}}
 \begin{{center}}
@@ -531,7 +585,7 @@ Name:\underline{{\hspace{{8cm}}}} \hfill Score: \underline{{\hspace{{2cm}}}} / \
 \end{{questions}}
 \end{{document}}
 ",
-        title, version, body
+        graphicspath_line, title, version, body
     )
 }
 
@@ -612,11 +666,19 @@ fn build_pdf_html(cart: &Value, version: i64, title: &str, include_answers: bool
             let n = questions.len();
             let start = (((version - 1) as usize * qn) % n) as usize;
 
+            let bank_path = item.get("path").and_then(|v| v.as_str()).unwrap_or("");
+            let bank_dir = Path::new(bank_path).parent().unwrap_or(Path::new("."));
+
             for i in 0..qn {
                 let q = &questions[(start + i) % n];
                 let qtype = get_qtype(q);
                 let qdata = q.get(&qtype).cloned().unwrap_or(json!({}));
                 let body = latex_to_html(qdata.get("text").and_then(|v| v.as_str()).unwrap_or(""));
+                let fig_html = resolve_figure(&qdata, bank_dir)
+                    .and_then(|p| figure_to_base64(&p).map(|src| {
+                        format!("<div class=\"q-fig\"><img src=\"{}\" style=\"max-width:100%;margin:.4cm 0;\"></div>", src)
+                    }))
+                    .unwrap_or_default();
 
                 let mut ans_html = String::new();
                 if qtype == "multiple_choice" || qtype == "multiple_answers" {
@@ -670,8 +732,8 @@ fn build_pdf_html(cart: &Value, version: i64, title: &str, include_answers: bool
                 };
 
                 parts.push(format!(
-                    "<div class=\"sheet\"><div class=\"q-num\">Question {}</div><div class=\"q-body\">{}</div><div class=\"ans-list\">{}</div>{}</div>",
-                    q_num, body, ans_html, work
+                    "<div class=\"sheet\"><div class=\"q-num\">Question {}</div><div class=\"q-body\">{}</div>{}<div class=\"ans-list\">{}</div>{}</div>",
+                    q_num, body, fig_html, ans_html, work
                 ));
             }
         }
