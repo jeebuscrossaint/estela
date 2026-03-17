@@ -44,10 +44,23 @@ fn get_qtype(q: &Value) -> String {
 }
 
 fn strip_tags(text: &str) -> String {
-    let tag_re = Regex::new(r"<[^>]+>").unwrap();
-    let ws_re = Regex::new(r"\s+").unwrap();
-    let stripped = tag_re.replace_all(text, " ");
-    ws_re.replace_all(&stripped, " ").trim().to_string()
+    let mut s = text.to_string();
+    // <latex>...</latex> blocks → strip entirely
+    s = Regex::new(r"(?s)<latex>.*?</latex>").unwrap().replace_all(&s, " ").to_string();
+    // strip HTML tags
+    s = Regex::new(r"<[^>]+>").unwrap().replace_all(&s, " ").to_string();
+    // \command{content} → content (e.g. \text{kg} → kg, \textbf{x} → x)
+    let cmd_re = Regex::new(r"\\[a-zA-Z]+\{([^}]*)\}").unwrap();
+    while cmd_re.is_match(&s) {
+        s = cmd_re.replace_all(&s, "$1").to_string();
+    }
+    // $...$ and $$...$$ → content
+    s = Regex::new(r"\$\$([^$]*)\$\$").unwrap().replace_all(&s, "$1").to_string();
+    s = Regex::new(r"\$([^$]*)\$").unwrap().replace_all(&s, "$1").to_string();
+    // remaining backslashes and markdown bold/italic
+    s = s.replace("\\", " ").replace("**", "").replace('*', "");
+    // collapse whitespace
+    Regex::new(r"\s+").unwrap().replace_all(s.trim(), " ").to_string()
 }
 
 fn latex_to_html(text: &str) -> String {
@@ -251,7 +264,8 @@ fn figure_to_base64(path: &Path) -> Option<String> {
 fn q_to_latex(q: &Value, num: usize, bank_dir: &Path) -> String {
     let qtype = get_qtype(q);
     let qdata = q.get(&qtype).cloned().unwrap_or(json!({}));
-    let body = html2tex(qdata.get("text").and_then(|v| v.as_str()).unwrap_or(""));
+    let raw_text = qdata.get("text").and_then(|v| v.as_str()).unwrap_or("");
+    let body = html2tex(&latex_to_html(raw_text));
     let fig_latex = resolve_figure(&qdata, bank_dir)
         .map(|p| format!("\n\\begin{{center}}\\includegraphics[max width=0.8\\linewidth]{{{}}}\\end{{center}}\n",
             p.to_string_lossy()))
