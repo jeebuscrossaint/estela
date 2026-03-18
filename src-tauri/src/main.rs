@@ -5,6 +5,7 @@ use base64::Engine as _;
 use regex::Regex;
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -843,6 +844,112 @@ hr{{border:none;border-top:1.5px solid #e0ded6;margin:.5cm 0 .7cm;}}
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// Remote download commands
+// ══════════════════════════════════════════════════════════════════════════════
+
+const UPSTREAM_REPO: &str = "Zhongzhou/ESTELA-physics-problem-bank";
+
+#[tauri::command]
+async fn fetch_remote_courses() -> Result<Vec<String>, String> {
+    let client = reqwest::Client::builder()
+        .user_agent("ESTELA-Exam-Builder")
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let url = format!(
+        "https://api.github.com/repos/{}/contents/",
+        UPSTREAM_REPO
+    );
+    let resp: Vec<Value> = client
+        .get(&url)
+        .header("Accept", "application/vnd.github.v3+json")
+        .send()
+        .await
+        .map_err(|e| format!("Network error: {}", e))?
+        .json()
+        .await
+        .map_err(|e| format!("Parse error: {}", e))?;
+
+    let skip = SKIP_COURSES;
+    let courses: Vec<String> = resp
+        .iter()
+        .filter(|item| item.get("type").and_then(|t| t.as_str()) == Some("dir"))
+        .filter_map(|item| item.get("name").and_then(|n| n.as_str()).map(String::from))
+        .filter(|name| !skip.contains(&name.as_str()) && !name.starts_with('.'))
+        .collect();
+
+    Ok(courses)
+}
+
+#[tauri::command]
+async fn download_courses(courses: Vec<String>, dest_folder: String) -> Result<String, String> {
+    let client = reqwest::Client::builder()
+        .user_agent("ESTELA-Exam-Builder")
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let zip_url = format!(
+        "https://github.com/{}/archive/refs/heads/main.zip",
+        UPSTREAM_REPO
+    );
+    let bytes = client
+        .get(&zip_url)
+        .send()
+        .await
+        .map_err(|e| format!("Download error: {}", e))?
+        .bytes()
+        .await
+        .map_err(|e| format!("Read error: {}", e))?;
+
+    let cursor = std::io::Cursor::new(bytes);
+    let mut archive = zip::ZipArchive::new(cursor).map_err(|e| e.to_string())?;
+
+    // Detect the root prefix from the first ZIP entry (e.g. "ESTELA-physics-problem-bank-main/")
+    let prefix = (0..archive.len())
+        .find_map(|i| {
+            let file = archive.by_index(i).ok()?;
+            let name = file.name().to_string();
+            name.find('/').map(|p| name[..=p].to_string())
+        })
+        .unwrap_or_default();
+
+    let dest = PathBuf::from(&dest_folder);
+    let mut extracted = 0usize;
+
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i).map_err(|e| e.to_string())?;
+        let raw_name = file.name().to_string();
+
+        let rel = match raw_name.strip_prefix(&prefix) {
+            Some(r) if !r.is_empty() => r.to_string(),
+            _ => continue,
+        };
+
+        // Only extract entries belonging to a selected course
+        let first = rel.split('/').next().unwrap_or("");
+        if !courses.contains(&first.to_string()) {
+            continue;
+        }
+
+        let out_path = dest.join(&rel);
+
+        if raw_name.ends_with('/') {
+            std::fs::create_dir_all(&out_path).map_err(|e| e.to_string())?;
+        } else {
+            if let Some(parent) = out_path.parent() {
+                std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
+            let mut content = Vec::new();
+            file.read_to_end(&mut content).map_err(|e| e.to_string())?;
+            std::fs::write(&out_path, content).map_err(|e| e.to_string())?;
+            extracted += 1;
+        }
+    }
+
+    Ok(format!("Extracted {} files to {}", extracted, dest_folder))
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // Main
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -914,7 +1021,7 @@ fn main() {
                     .unwrap(),
             }
         })
-        .invoke_handler(tauri::generate_handler![scan_repo, bank_data, export_tex, export_html, open_preview, save_tex, save_tex_batch])
+        .invoke_handler(tauri::generate_handler![scan_repo, bank_data, export_tex, export_html, open_preview, save_tex, save_tex_batch, fetch_remote_courses, download_courses])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

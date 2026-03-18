@@ -215,6 +215,22 @@ body:not(.tauri) #shell{height:100vh;}
     <div id="sb-scroll">
 
       <div class="sb-sec">
+        <span class="sb-lbl" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between" onclick="toggleDlPanel()">
+          Get Problem Banks <span id="dl-chev" style="font-size:.8rem;transition:transform .17s">›</span>
+        </span>
+        <div id="dl-panel" style="display:none;margin-top:.4rem">
+          <div id="dl-courses" style="margin-bottom:.35rem">
+            <button class="btn btn-sm btn-full" onclick="fetchRemoteCourses()" id="dl-fetch-btn">Fetch available courses</button>
+          </div>
+          <div id="dl-checklist" style="display:none;max-height:160px;overflow-y:auto;margin-bottom:.35rem;border:1px solid var(--border);border-radius:var(--r);padding:.3rem .5rem;background:var(--surface)"></div>
+          <div id="dl-actions" style="display:none;display:flex;flex-direction:column;gap:.25rem">
+            <button class="btn btn-sm btn-p btn-full" onclick="downloadSelected()">⬇ Download selected</button>
+            <button class="btn btn-sm btn-full" id="dl-update-btn" style="display:none" onclick="updateLocalBanks()">↺ Update existing banks</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sb-sec">
         <span class="sb-lbl">Repository</span>
         <input id="path-inp" class="inp" type="text" placeholder="/path/to/problem-bank" spellcheck="false"
                onkeydown="if(event.key==='Enter')loadRepo()">
@@ -774,6 +790,76 @@ async function restoreCart(repoData) {
     }
     if (S.cart.length) { renderCart(); renderBanks(); toast(`Restored ${S.cart.length} cart item${S.cart.length>1?'s':''}`); }
   } catch(e) {}
+}
+
+// ── Download banks ─────────────────────────────────────────────────────────
+let _dlCourses = [];
+
+function toggleDlPanel() {
+  const panel = document.getElementById('dl-panel');
+  const chev  = document.getElementById('dl-chev');
+  const open  = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  chev.style.transform = open ? 'rotate(90deg)' : '';
+  // Show "Update existing" button only when a repo is loaded
+  const upd = document.getElementById('dl-update-btn');
+  if (upd) upd.style.display = open && Object.keys(S.repo).length ? 'block' : 'none';
+}
+
+async function fetchRemoteCourses() {
+  const btn = document.getElementById('dl-fetch-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Fetching…';
+  try {
+    _dlCourses = await window.__TAURI__.core.invoke('fetch_remote_courses');
+    const list = document.getElementById('dl-checklist');
+    list.innerHTML = _dlCourses.map(c =>
+      `<label style="display:flex;align-items:center;gap:.4rem;padding:.2rem 0;font-size:.9rem;cursor:pointer">
+        <input type="checkbox" value="${esc(c)}" checked style="accent-color:var(--accent)"> ${esc(c)}
+       </label>`
+    ).join('');
+    list.style.display = 'block';
+    document.getElementById('dl-actions').style.display = 'flex';
+    btn.textContent = '↺ Refresh list';
+    btn.disabled = false;
+  } catch(e) {
+    toast('Error fetching courses: ' + e);
+    btn.textContent = 'Fetch available courses';
+    btn.disabled = false;
+  }
+}
+
+function _selectedCourses() {
+  return [...document.querySelectorAll('#dl-checklist input[type=checkbox]:checked')]
+    .map(el => el.value);
+}
+
+async function downloadSelected() {
+  const courses = _selectedCourses();
+  if (!courses.length) { toast('Select at least one course'); return; }
+  const folder = await pickSaveFolder();
+  if (!folder) return;
+  toast('Downloading… this may take a moment');
+  try {
+    const msg = await window.__TAURI__.core.invoke('download_courses', {courses, destFolder: folder});
+    toast(msg);
+    // Auto-load the downloaded folder
+    document.getElementById('path-inp').value = folder;
+    await loadRepo();
+  } catch(e) { toast('Download failed: ' + e); }
+}
+
+async function updateLocalBanks() {
+  const courses = Object.keys(S.repo);
+  if (!courses.length) { toast('No repo loaded'); return; }
+  const folder = document.getElementById('path-inp').value.trim();
+  if (!folder) { toast('No path set'); return; }
+  toast('Updating… this may take a moment');
+  try {
+    const msg = await window.__TAURI__.core.invoke('download_courses', {courses, destFolder: folder});
+    toast(msg);
+    await loadRepo();
+  } catch(e) { toast('Update failed: ' + e); }
 }
 
 // ── Utilities ──────────────────────────────────────────────────────────────
