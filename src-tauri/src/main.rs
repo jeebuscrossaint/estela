@@ -513,21 +513,9 @@ fn bank_data(path: String) -> Result<Value, String> {
         let fb = qdata.get("feedback").cloned().unwrap_or(json!({}));
         let solution = latex_to_html(fb.get("general").and_then(|v| v.as_str()).unwrap_or(""));
 
-        // figure resolution
-        let fig_name = qdata.get("figure").and_then(|v| v.as_str()).map(|s| s.to_string());
-        let mut fig_url: Option<String> = None;
-        if let Some(fig) = &fig_name {
-            let candidates = vec![
-                bank_dir.join(fig),
-                bank_dir.join("Figures").join(Path::new(fig).file_name().unwrap_or_default()),
-            ];
-            for candidate in &candidates {
-                if candidate.exists() {
-                    fig_url = figure_to_base64(candidate);
-                    break;
-                }
-            }
-        }
+        // figure resolution — use the same comprehensive resolver as the LaTeX export
+        let fig_url = resolve_figure(&qdata, bank_dir)
+            .and_then(|p| figure_to_base64(&p));
 
         let q_count = questions.len() + 1;
         questions.push(json!({
