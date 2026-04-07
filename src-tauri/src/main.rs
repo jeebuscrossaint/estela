@@ -497,6 +497,7 @@ fn build_exam_md(cart: &Value, version: i64, title: &str) -> String {
                     if !answers_have_lock(&ans_val) {
                         seeded_shuffle(&mut answer_list, version as u64 * 10000 + q_num as u64);
                     }
+                    block.push('\n');
                     for (j, (_, atxt, _)) in answer_list.iter().enumerate() {
                         let letter = (b'A' + j as u8) as char;
                         let atxt = Regex::new(r"(?s)<latex>(.*?)</latex>").unwrap()
@@ -504,12 +505,13 @@ fn build_exam_md(cart: &Value, version: i64, title: &str) -> String {
                         let atxt = Regex::new(r"<[^>]+>").unwrap().replace_all(&atxt, "").to_string();
                         let atxt = Regex::new(r"\$([^$]*)\$").unwrap()
                             .replace_all(&atxt, |caps: &regex::Captures| latex_to_unicode(&caps[1])).to_string();
-                        block.push_str(&format!("   {}. {}\n", letter, atxt.trim()));
+                        // Each choice on its own list item so pandoc puts them on separate lines
+                        block.push_str(&format!("- {}. {}\n", letter, atxt.trim()));
                     }
                 } else if qtype == "true_false" {
-                    block.push_str("   A. True\n   B. False\n");
+                    block.push_str("\n- A. True\n- B. False\n");
                 } else {
-                    block.push_str("\n_Work space_\n");
+                    block.push_str("\n*Work space*\n");
                 }
 
                 parts.push(block);
