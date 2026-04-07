@@ -459,6 +459,9 @@ fn build_exam_md(cart: &Value, version: i64, title: &str) -> String {
             let questions = raw.get("questions").and_then(|v| v.as_array()).cloned().unwrap_or_default();
             if questions.is_empty() { continue; }
 
+            let bank_path = item.get("path").and_then(|v| v.as_str()).unwrap_or("");
+            let bank_dir = Path::new(bank_path).parent().unwrap_or(Path::new("."));
+
             let qn = item.get("qn").and_then(|v| v.as_i64()).unwrap_or(1).max(1) as usize;
             let n = questions.len();
             let start = (((version - 1) as usize * qn) % n) as usize;
@@ -471,20 +474,22 @@ fn build_exam_md(cart: &Value, version: i64, title: &str) -> String {
 
                 // Question text — strip LaTeX tags, convert math to unicode
                 let raw_text = qdata.get("text").and_then(|v| v.as_str()).unwrap_or("");
-                // strip <latex>...</latex> wrapping to bare math, then unicode-ify
                 let text = Regex::new(r"(?s)<latex>(.*?)</latex>").unwrap()
                     .replace_all(raw_text, |caps: &regex::Captures| {
                         latex_to_unicode(&caps[1])
                     }).to_string();
-                // strip remaining HTML tags
                 let text = Regex::new(r"<[^>]+>").unwrap().replace_all(&text, "").to_string();
-                // convert any remaining $...$ inline math
                 let text = Regex::new(r"\$\$([^$]*)\$\$").unwrap()
                     .replace_all(&text, |caps: &regex::Captures| latex_to_unicode(&caps[1])).to_string();
                 let text = Regex::new(r"\$([^$]*)\$").unwrap()
                     .replace_all(&text, |caps: &regex::Captures| latex_to_unicode(&caps[1])).to_string();
 
                 let mut block = format!("**{}. ({})** {}\n", q_num, type_label(qtype.as_str()), text.trim());
+
+                // Embed figure if present — use angle-bracket path so spaces work
+                if let Some(fig_path) = resolve_figure(&qdata, bank_dir) {
+                    block.push_str(&format!("\n![](<{}>)\n", fig_path.display()));
+                }
 
                 if qtype == "multiple_choice" || qtype == "multiple_answers" {
                     let ans_val = qdata.get("answers").cloned().unwrap_or(json!([]));
@@ -494,7 +499,6 @@ fn build_exam_md(cart: &Value, version: i64, title: &str) -> String {
                     }
                     for (j, (_, atxt, _)) in answer_list.iter().enumerate() {
                         let letter = (b'A' + j as u8) as char;
-                        // same conversion for answer text
                         let atxt = Regex::new(r"(?s)<latex>(.*?)</latex>").unwrap()
                             .replace_all(atxt, |caps: &regex::Captures| latex_to_unicode(&caps[1])).to_string();
                         let atxt = Regex::new(r"<[^>]+>").unwrap().replace_all(&atxt, "").to_string();
