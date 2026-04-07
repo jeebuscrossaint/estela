@@ -18,7 +18,12 @@ const SKIP_DIRS: &[&str] = &[
     ".git", "Scripts", "scripts", "Figure Creation", "figure_creation",
 ];
 
-const SKIP_COURSES: &[&str] = &["venv", "Templates", "Bank Statistics", ".git"];
+const SKIP_COURSES: &[&str] = &[
+    "venv", "Templates", "Bank Statistics", ".git",
+    // app source folders (when app lives in same repo as problem banks)
+    "frontend", "src-tauri", "src", "node_modules", ".github",
+    "target", "dist", "build",
+];
 
 const QTYPES: &[&str] = &[
     "numerical", "multiple_choice", "true_false", "multiple_answers",
