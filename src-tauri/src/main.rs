@@ -18,7 +18,12 @@ const SKIP_DIRS: &[&str] = &[
     ".git", "Scripts", "scripts", "Figure Creation", "figure_creation",
 ];
 
-const SKIP_COURSES: &[&str] = &["venv", "Templates", "Bank Statistics", ".git"];
+const SKIP_COURSES: &[&str] = &[
+    "venv", "Templates", "Bank Statistics", ".git",
+    // app source folders (when app lives in same repo as problem banks)
+    "frontend", "src-tauri", "src", "node_modules", ".github",
+    "target", "dist", "build",
+];
 
 const QTYPES: &[&str] = &[
     "numerical", "multiple_choice", "true_false", "multiple_answers",
@@ -280,6 +285,244 @@ fn tol_str(tol: &str, margin_type: &str) -> String {
     }
     let pct = if margin_type == "percent" { r"\%" } else { "" };
     format!(r" \pm {}{}", tol, pct)
+}
+
+fn tol_str_plain(tol: &str, margin_type: &str) -> String {
+    if tol.is_empty() { return String::new(); }
+    let pct = if margin_type == "percent" { "%" } else { "" };
+    format!(" ± {}{}", tol, pct)
+}
+
+fn unicode_subscript(c: char) -> Option<char> {
+    match c {
+        '0'=>Some('₀'),'1'=>Some('₁'),'2'=>Some('₂'),'3'=>Some('₃'),'4'=>Some('₄'),
+        '5'=>Some('₅'),'6'=>Some('₆'),'7'=>Some('₇'),'8'=>Some('₈'),'9'=>Some('₉'),
+        'a'=>Some('ₐ'),'e'=>Some('ₑ'),'o'=>Some('ₒ'),'x'=>Some('ₓ'),
+        'i'=>Some('ᵢ'),'r'=>Some('ᵣ'),'u'=>Some('ᵤ'),'v'=>Some('ᵥ'),
+        _ => None,
+    }
+}
+
+fn unicode_superscript(c: char) -> Option<char> {
+    match c {
+        '0'=>Some('⁰'),'1'=>Some('¹'),'2'=>Some('²'),'3'=>Some('³'),'4'=>Some('⁴'),
+        '5'=>Some('⁵'),'6'=>Some('⁶'),'7'=>Some('⁷'),'8'=>Some('⁸'),'9'=>Some('⁹'),
+        'n'=>Some('ⁿ'),'i'=>Some('ⁱ'),
+        _ => None,
+    }
+}
+
+fn apply_script(content: &str, sup: bool) -> String {
+    if content.len() == 1 {
+        let c = content.chars().next().unwrap();
+        let mapped = if sup { unicode_superscript(c) } else { unicode_subscript(c) };
+        if let Some(u) = mapped { return u.to_string(); }
+    }
+    if sup { format!("^({})", content) } else { format!("({})", content) }
+}
+
+/// Convert simple LaTeX math to readable unicode plain text.
+/// Subscripts/superscripts become unicode characters so no raw `_` or `^`
+/// survive to confuse Markdown parsers.
+fn latex_to_unicode(s: &str) -> String {
+    let s = s
+        // strip math delimiters
+        .replace("$$", "").replace("$", "")
+        .replace("\\(", "").replace("\\)", "")
+        .replace("\\[", "").replace("\\]", "")
+        // greek lowercase
+        .replace("\\alpha","α").replace("\\beta","β").replace("\\gamma","γ")
+        .replace("\\delta","δ").replace("\\epsilon","ε").replace("\\varepsilon","ε")
+        .replace("\\zeta","ζ").replace("\\eta","η").replace("\\theta","θ")
+        .replace("\\vartheta","θ").replace("\\iota","ι").replace("\\kappa","κ")
+        .replace("\\lambda","λ").replace("\\mu","μ").replace("\\nu","ν")
+        .replace("\\xi","ξ").replace("\\pi","π").replace("\\rho","ρ")
+        .replace("\\sigma","σ").replace("\\tau","τ").replace("\\upsilon","υ")
+        .replace("\\phi","φ").replace("\\varphi","φ").replace("\\chi","χ")
+        .replace("\\psi","ψ").replace("\\omega","ω")
+        // greek uppercase
+        .replace("\\Gamma","Γ").replace("\\Delta","Δ").replace("\\Theta","Θ")
+        .replace("\\Lambda","Λ").replace("\\Xi","Ξ").replace("\\Pi","Π")
+        .replace("\\Sigma","Σ").replace("\\Upsilon","Υ").replace("\\Phi","Φ")
+        .replace("\\Psi","Ψ").replace("\\Omega","Ω")
+        // operators / symbols
+        .replace("\\pm","±").replace("\\mp","∓").replace("\\times","×")
+        .replace("\\cdot","·").replace("\\div","÷").replace("\\infty","∞")
+        .replace("\\approx","≈").replace("\\neq","≠").replace("\\leq","≤")
+        .replace("\\geq","≥").replace("\\ll","«").replace("\\gg","»")
+        .replace("\\rightarrow","→").replace("\\leftarrow","←")
+        .replace("\\Rightarrow","⇒").replace("\\Leftarrow","⇐")
+        .replace("\\nabla","∇").replace("\\partial","∂").replace("\\hbar","ℏ")
+        .replace("\\degree","°").replace("^\\circ","°").replace("\\circ","°")
+        .replace("\\vec","").replace("\\hat","").replace("\\tilde","")
+        .replace("\\bar","").replace("\\dot","").replace("\\ddot","");
+
+    // \text{...} / \mathrm{...} etc. → content
+    let s = Regex::new(r"\\(?:text|mathrm|mathbf|mathit|operatorname)\{([^}]*)\}")
+        .unwrap().replace_all(&s, "$1").to_string();
+    // \frac{a}{b} → (a)/(b)
+    let s = Regex::new(r"\\frac\{([^}]*)\}\{([^}]*)\}")
+        .unwrap().replace_all(&s, "($1)/($2)").to_string();
+    // \sqrt{x} → √(x)
+    let s = Regex::new(r"\\sqrt\{([^}]*)\}")
+        .unwrap().replace_all(&s, "√($1)").to_string();
+    let s = s.replace("\\sqrt", "√");
+    // ^{...} → unicode superscript or ^(...)
+    let s = Regex::new(r"\^\{([^}]*)\}").unwrap()
+        .replace_all(&s, |caps: &regex::Captures| apply_script(&caps[1], true)).to_string();
+    // _{...} → unicode subscript or (...)
+    let s = Regex::new(r"_\{([^}]*)\}").unwrap()
+        .replace_all(&s, |caps: &regex::Captures| apply_script(&caps[1], false)).to_string();
+    // bare ^x and _x (single char, no braces)
+    let s = Regex::new(r"\^(\w)").unwrap()
+        .replace_all(&s, |caps: &regex::Captures| apply_script(&caps[1], true)).to_string();
+    let s = Regex::new(r"_(\w)").unwrap()
+        .replace_all(&s, |caps: &regex::Captures| apply_script(&caps[1], false)).to_string();
+    // strip remaining LaTeX commands and stray braces
+    let s = Regex::new(r"\\[a-zA-Z]+").unwrap().replace_all(&s, "").to_string();
+    let s = s.replace('{', "").replace('}', "");
+    Regex::new(r"\s+").unwrap().replace_all(s.trim(), " ").to_string()
+}
+
+/// Build a plain-Markdown answer key (no OMML equations) so Word Online renders it cleanly.
+fn build_key_md(cart: &Value, version: i64, title: &str) -> String {
+    let mut rows: Vec<String> = Vec::new();
+
+    if let Some(arr) = cart.as_array() {
+        for item in arr {
+            let raw = item.get("rawData").cloned().unwrap_or(json!({}));
+            let questions = raw.get("questions").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+            if questions.is_empty() { continue; }
+
+            let qn = item.get("qn").and_then(|v| v.as_i64()).unwrap_or(1).max(1) as usize;
+            let n = questions.len();
+            let start = (((version - 1) as usize * qn) % n) as usize;
+
+            for i in 0..qn {
+                let q = &questions[(start + i) % n];
+                let qtype = get_qtype(q);
+                let qdata = q.get(&qtype).cloned().unwrap_or(json!({}));
+                let q_num = rows.len() + 1;
+
+                let ans = if qtype == "numerical" {
+                    let a = qdata.get("answer").cloned().unwrap_or(json!({}));
+                    let val = a.get("value").map(|v| match v {
+                        Value::String(s) => s.clone(),
+                        other => other.to_string(),
+                    }).unwrap_or_else(|| "?".to_string());
+                    let tol = a.get("tolerance").and_then(|v| v.as_str()).unwrap_or("");
+                    let mt  = a.get("margin_type").and_then(|v| v.as_str()).unwrap_or("");
+                    format!("{}{}", latex_to_unicode(&val), tol_str_plain(tol, mt))
+                } else if qtype == "multiple_choice" || qtype == "multiple_answers" {
+                    let ans_val = qdata.get("answers").cloned().unwrap_or(json!([]));
+                    let mut answer_list = extract_mc_answers(&ans_val);
+                    if !answers_have_lock(&ans_val) {
+                        seeded_shuffle(&mut answer_list, version as u64 * 10000 + q_num as u64);
+                    }
+                    let letters: Vec<String> = answer_list.iter().enumerate()
+                        .filter(|(_, (_, _, ok))| *ok)
+                        .map(|(j, _)| ((b'A' + j as u8) as char).to_string())
+                        .collect();
+                    if letters.is_empty() { "?".to_string() } else { letters.join(", ") }
+                } else if qtype == "true_false" {
+                    if qdata.get("answer").and_then(|v| v.as_bool()).unwrap_or(false) {
+                        "True".to_string()
+                    } else {
+                        "False".to_string()
+                    }
+                } else {
+                    "[See rubric]".to_string()
+                };
+
+                rows.push(format!("{}. {}", q_num, ans));
+            }
+        }
+    }
+
+    format!(
+        "# {} \u{2014} Version {} \u{2014} Answer Key\n\n{}\n",
+        title,
+        version_label(version),
+        rows.join("\n")
+    )
+}
+
+/// Build a full exam as Markdown with unicode math so Word Online renders it without
+/// [Equation] placeholders. Less pretty than LaTeX but actually readable.
+fn build_exam_md(cart: &Value, version: i64, title: &str) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    let mut q_num = 0usize;
+
+    if let Some(arr) = cart.as_array() {
+        for item in arr {
+            let raw = item.get("rawData").cloned().unwrap_or(json!({}));
+            let questions = raw.get("questions").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+            if questions.is_empty() { continue; }
+
+            let bank_path = item.get("path").and_then(|v| v.as_str()).unwrap_or("");
+            let bank_dir = Path::new(bank_path).parent().unwrap_or(Path::new("."));
+
+            let qn = item.get("qn").and_then(|v| v.as_i64()).unwrap_or(1).max(1) as usize;
+            let n = questions.len();
+            let start = (((version - 1) as usize * qn) % n) as usize;
+
+            for i in 0..qn {
+                let q = &questions[(start + i) % n];
+                let qtype = get_qtype(q);
+                let qdata = q.get(&qtype).cloned().unwrap_or(json!({}));
+                q_num += 1;
+
+                // Question text — strip LaTeX tags, convert math to unicode
+                let raw_text = qdata.get("text").and_then(|v| v.as_str()).unwrap_or("");
+                let text = Regex::new(r"(?s)<latex>(.*?)</latex>").unwrap()
+                    .replace_all(raw_text, |caps: &regex::Captures| {
+                        latex_to_unicode(&caps[1])
+                    }).to_string();
+                let text = Regex::new(r"<[^>]+>").unwrap().replace_all(&text, "").to_string();
+                let text = Regex::new(r"\$\$([^$]*)\$\$").unwrap()
+                    .replace_all(&text, |caps: &regex::Captures| latex_to_unicode(&caps[1])).to_string();
+                let text = Regex::new(r"\$([^$]*)\$").unwrap()
+                    .replace_all(&text, |caps: &regex::Captures| latex_to_unicode(&caps[1])).to_string();
+
+                let mut block = format!("**{}. ({})** {}\n", q_num, type_label(qtype.as_str()), text.trim());
+
+                // Embed figure if present — use angle-bracket path so spaces work
+                if let Some(fig_path) = resolve_figure(&qdata, bank_dir) {
+                    block.push_str(&format!("\n![](<{}>)\n", fig_path.display()));
+                }
+
+                if qtype == "multiple_choice" || qtype == "multiple_answers" {
+                    let ans_val = qdata.get("answers").cloned().unwrap_or(json!([]));
+                    let mut answer_list = extract_mc_answers(&ans_val);
+                    if !answers_have_lock(&ans_val) {
+                        seeded_shuffle(&mut answer_list, version as u64 * 10000 + q_num as u64);
+                    }
+                    block.push('\n');
+                    for (j, (_, atxt, _)) in answer_list.iter().enumerate() {
+                        let letter = (b'A' + j as u8) as char;
+                        let atxt = Regex::new(r"(?s)<latex>(.*?)</latex>").unwrap()
+                            .replace_all(atxt, |caps: &regex::Captures| latex_to_unicode(&caps[1])).to_string();
+                        let atxt = Regex::new(r"<[^>]+>").unwrap().replace_all(&atxt, "").to_string();
+                        let atxt = Regex::new(r"\$([^$]*)\$").unwrap()
+                            .replace_all(&atxt, |caps: &regex::Captures| latex_to_unicode(&caps[1])).to_string();
+                        // Each choice on its own list item so pandoc puts them on separate lines
+                        block.push_str(&format!("- {}. {}\n", letter, atxt.trim()));
+                    }
+                } else if qtype == "true_false" {
+                    block.push_str("\n- A. True\n- B. False\n");
+                } else {
+                    block.push_str("\n*Work space*\n");
+                }
+
+                parts.push(block);
+            }
+        }
+    }
+
+    format!(
+        "# {} \u{2014} Version {}\n\n**Name:** __________________________ \u{a0}\u{a0}\u{a0} **Score:** ______\n\n\n{}\n",
+        title, version_label(version), parts.join("\n")
+    )
 }
 
 fn type_label(qtype: &str) -> &str {
@@ -1092,6 +1335,71 @@ fn open_preview(html: String) -> Result<(), String> {
     open::that(path).map_err(|e| e.to_string())
 }
 
+fn find_pandoc() -> PathBuf {
+    let bin = if cfg!(windows) { "pandoc.exe" } else { "pandoc" };
+    // Production: bundled next to the executable
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            let p = dir.join(bin);
+            if p.exists() { return p; }
+        }
+    }
+    // Fall back to system pandoc on PATH
+    PathBuf::from(bin)
+}
+
+#[tauri::command]
+fn export_docx(cart: Value, version: i64, title: String, kind: String, folder: Option<String>) -> Result<String, String> {
+    let tmp_dir = std::env::temp_dir().join("estela");
+    std::fs::create_dir_all(&tmp_dir).map_err(|e| e.to_string())?;
+
+    let out_dir = if let Some(f) = folder {
+        PathBuf::from(f)
+    } else {
+        dirs::download_dir()
+            .or_else(|| dirs::home_dir().map(|h| h.join("Downloads")))
+            .unwrap_or_else(std::env::temp_dir)
+    };
+    std::fs::create_dir_all(&out_dir).map_err(|e| e.to_string())?;
+
+    let fname = format!("{}_{}.docx", kind, version_label(version));
+    let docx_path = out_dir.join(&fname);
+    let pandoc = find_pandoc();
+
+    if kind == "key" {
+        // Answer keys use plain Markdown with unicode math so Word Online renders
+        // them as normal text (no [Equation] placeholders).
+        let md = build_key_md(&cart, version, &title);
+        let md_path = tmp_dir.join("export_key.md");
+        std::fs::write(&md_path, &md).map_err(|e| e.to_string())?;
+        let output = std::process::Command::new(&pandoc)
+            .arg(&md_path)
+            .arg("-o").arg(&docx_path)
+            .arg("--standalone")
+            .output()
+            .map_err(|e| format!("Failed to run pandoc: {}", e))?;
+        if !output.status.success() {
+            return Err(format!("Pandoc error: {}", String::from_utf8_lossy(&output.stderr).trim()));
+        }
+    } else {
+        // Full exam: Markdown with unicode math so Word Online renders without [Equation] placeholders.
+        let md = build_exam_md(&cart, version, &title);
+        let md_path = tmp_dir.join("export_exam.md");
+        std::fs::write(&md_path, &md).map_err(|e| e.to_string())?;
+        let output = std::process::Command::new(&pandoc)
+            .arg(&md_path)
+            .arg("-o").arg(&docx_path)
+            .arg("--standalone")
+            .output()
+            .map_err(|e| format!("Failed to run pandoc: {}", e))?;
+        if !output.status.success() {
+            return Err(format!("Pandoc error: {}", String::from_utf8_lossy(&output.stderr).trim()));
+        }
+    }
+
+    Ok(docx_path.to_string_lossy().to_string())
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -1123,7 +1431,7 @@ fn main() {
                     .unwrap(),
             }
         })
-        .invoke_handler(tauri::generate_handler![scan_repo, bank_data, export_tex, export_html, open_preview, save_tex, save_tex_batch, export_exam_bundle, fetch_remote_courses, download_courses])
+        .invoke_handler(tauri::generate_handler![scan_repo, bank_data, export_tex, export_html, open_preview, save_tex, save_tex_batch, export_exam_bundle, export_docx, fetch_remote_courses, download_courses])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
