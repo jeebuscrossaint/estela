@@ -213,7 +213,10 @@ fn is_bank(data: &Value) -> bool {
 
 fn load_yaml(path: &Path) -> Option<Value> {
     let content = std::fs::read_to_string(path).ok()?;
-    serde_yaml::from_str(&content).ok()
+    // Two-step avoids serde_yaml 0.9 failures on YAML timestamp/date values
+    // (e.g. `date_created: 2025-10-05`) when deserializing directly into serde_json::Value
+    let yaml_val: serde_yaml::Value = serde_yaml::from_str(&content).ok()?;
+    serde_json::to_value(yaml_val).ok()
 }
 
 fn extract_mc_answers(answers: &Value) -> Vec<(usize, String, bool)> {
