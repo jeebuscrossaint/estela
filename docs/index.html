@@ -85,7 +85,7 @@ footer a:hover{color:var(--ink)}
   <div class="nav-links">
     <a href="#download">Download</a>
     <a href="#usage">Usage</a>
-    <a href="https://github.com/Zhongzhou/ESTELA-physics-problem-bank" target="_blank">GitHub</a>
+    <a href="https://github.com/jeebuscrossaint/estela" target="_blank">GitHub</a>
   </div>
 </nav>
 
@@ -95,7 +95,7 @@ footer a:hover{color:var(--ink)}
   <p>A desktop app for UCF physics instructors. Browse the ESTELA problem bank, assemble exam carts, and export ready-to-print LaTeX or Word documents — multiple versions, shuffled choices, figures included.</p>
   <div class="hero-btns">
     <a href="#download" class="btn btn-primary">⬇ Download</a>
-    <a href="https://github.com/Zhongzhou/ESTELA-physics-problem-bank" class="btn btn-secondary" target="_blank">View on GitHub</a>
+    <a href="https://github.com/jeebuscrossaint/estela" class="btn btn-secondary" target="_blank">View on GitHub</a>
   </div>
 </div>
 
@@ -172,11 +172,11 @@ footer a:hover{color:var(--ink)}
 
 <footer>
   <p>ESTELA Exam Builder &nbsp;·&nbsp; UCF Department of Physics &nbsp;·&nbsp; NSF Award #2421299</p>
-  <p style="margin-top:.4rem"><a href="https://github.com/Zhongzhou/ESTELA-physics-problem-bank" target="_blank">github.com/Zhongzhou/ESTELA-physics-problem-bank</a></p>
+  <p style="margin-top:.4rem"><a href="https://github.com/jeebuscrossaint/estela" target="_blank">github.com/jeebuscrossaint/estela</a></p>
 </footer>
 
 <script>
-const REPO = 'Zhongzhou/ESTELA-physics-problem-bank';
+const REPO = 'jeebuscrossaint/estela';
 
 const PLATFORMS = [
   {
@@ -245,12 +245,8 @@ async function loadRelease() {
       grid.appendChild(card);
     }
   } catch(e) {
-    document.getElementById('dl-loading').textContent =
-      'No release published yet — check back after the first tagged build, or download from the ' +
-      '<a href="https://github.com/' + REPO + '/actions">Actions artifacts</a>.';
     document.getElementById('dl-loading').innerHTML =
-      'No release published yet — check the <a href="https://github.com/' + REPO + '/releases">Releases page</a> or ' +
-      '<a href="https://github.com/' + REPO + '/actions">Actions artifacts</a>.';
+      'No release available yet. <a href="https://github.com/' + REPO + '/releases">Check GitHub Releases</a>.';
   }
 }
 
