@@ -75,7 +75,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:1.5rem 2
 footer a{color:var(--ink3);text-decoration:none}
 footer a:hover{color:var(--ink)}
 
-#dl-loading{font-family:var(--font-m);font-size:.9rem;color:var(--ink4);padding:1rem 0}
+
 </style>
 </head>
 <body>
@@ -103,10 +103,39 @@ footer a:hover{color:var(--ink)}
 
 <div class="section" id="download">
   <div class="section-title">Download</div>
-  <div class="section-sub">Pre-built binaries for all platforms. No installation of LaTeX or Python required.</div>
-  <div id="dl-loading">Fetching latest release…</div>
-  <div id="dl-grid" class="dl-grid" style="display:none"></div>
-  <p id="dl-version" class="version-badge" style="margin-top:1rem"></p>
+  <div class="section-sub">Pre-built binaries — always the latest build, straight from CI. Unzip to find the installer inside.</div>
+  <div class="dl-grid">
+
+    <div class="dl-card">
+      <div class="dl-os">Windows</div>
+      <div class="dl-name">Installer (.msi + .exe)</div>
+      <div class="dl-desc">Windows 10/11 x64. Unzip, run the installer, launch from Start menu.</div>
+      <a href="https://nightly.link/jeebuscrossaint/estela/workflows/build.yml/main/estela-x86_64-pc-windows-msvc.zip" class="dl-btn">⬇ Download</a>
+    </div>
+
+    <div class="dl-card">
+      <div class="dl-os">macOS</div>
+      <div class="dl-name">Apple Silicon (M1 / M2 / M3 / M4)</div>
+      <div class="dl-desc">ARM64 .app bundle. Unzip and drag to Applications.</div>
+      <a href="https://nightly.link/jeebuscrossaint/estela/workflows/build.yml/main/estela-aarch64-apple-darwin.zip" class="dl-btn">⬇ Download</a>
+    </div>
+
+    <div class="dl-card">
+      <div class="dl-os">macOS</div>
+      <div class="dl-name">Intel</div>
+      <div class="dl-desc">x86_64 .app bundle for older Intel Macs. Unzip and drag to Applications.</div>
+      <a href="https://nightly.link/jeebuscrossaint/estela/workflows/build.yml/main/estela-x86_64-apple-darwin.zip" class="dl-btn secondary">⬇ Download</a>
+    </div>
+
+    <div class="dl-card">
+      <div class="dl-os">Linux</div>
+      <div class="dl-name">AppImage + .deb</div>
+      <div class="dl-desc">Universal AppImage (any distro) and .deb for Debian/Ubuntu. Unzip to find both.</div>
+      <a href="https://nightly.link/jeebuscrossaint/estela/workflows/build.yml/main/estela-x86_64-unknown-linux-gnu.zip" class="dl-btn secondary">⬇ Download</a>
+    </div>
+
+  </div>
+  <p class="version-badge" style="margin-top:1rem">Always the latest successful build from the <a href="https://github.com/jeebuscrossaint/estela/actions" target="_blank">main branch CI</a>.</p>
 </div>
 
 <hr>
@@ -175,82 +204,5 @@ footer a:hover{color:var(--ink)}
   <p style="margin-top:.4rem"><a href="https://github.com/jeebuscrossaint/estela" target="_blank">github.com/jeebuscrossaint/estela</a></p>
 </footer>
 
-<script>
-const REPO = 'jeebuscrossaint/estela';
-
-const PLATFORMS = [
-  {
-    os: 'Linux',
-    name: 'AppImage',
-    desc: 'Universal — runs on any modern Linux distro without installation.',
-    match: a => a.name.endsWith('.AppImage'),
-    primary: true,
-  },
-  {
-    os: 'Linux',
-    name: 'Debian / Ubuntu',
-    desc: '.deb package for Debian-based systems.',
-    match: a => a.name.endsWith('.deb'),
-    primary: false,
-  },
-  {
-    os: 'Windows',
-    name: 'Installer',
-    desc: 'Windows 10/11 x64. Run the installer and launch from the Start menu.',
-    match: a => a.name.endsWith('.msi'),
-    primary: true,
-  },
-  {
-    os: 'macOS',
-    name: 'Apple Silicon (M1/M2/M3/M4)',
-    desc: 'ARM64 .app bundle. Unzip and drag to Applications.',
-    match: a => a.name.includes('aarch64') && a.name.endsWith('.zip'),
-    primary: true,
-  },
-  {
-    os: 'macOS',
-    name: 'Intel',
-    desc: 'x86_64 .app bundle for older Intel Macs. Unzip and drag to Applications.',
-    match: a => a.name.includes('x86_64') && a.name.endsWith('.zip'),
-    primary: false,
-  },
-];
-
-async function loadRelease() {
-  try {
-    const r = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`);
-    if (!r.ok) throw new Error('No release found');
-    const release = await r.json();
-
-    document.getElementById('dl-loading').style.display = 'none';
-    document.getElementById('dl-version').textContent =
-      `Latest: ${release.tag_name} · ${new Date(release.published_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}`;
-
-    const grid = document.getElementById('dl-grid');
-    grid.style.display = 'grid';
-
-    for (const p of PLATFORMS) {
-      const asset = release.assets.find(p.match);
-      const card = document.createElement('div');
-      card.className = 'dl-card';
-      card.innerHTML = `
-        <div class="dl-os">${p.os}</div>
-        <div class="dl-name">${p.name}</div>
-        <div class="dl-desc">${p.desc}</div>
-        ${asset
-          ? `<a href="${asset.browser_download_url}" class="dl-btn${p.primary ? '' : ' secondary'}">⬇ Download</a>`
-          : `<a class="dl-btn secondary" disabled>Not available</a>`
-        }
-      `;
-      grid.appendChild(card);
-    }
-  } catch(e) {
-    document.getElementById('dl-loading').innerHTML =
-      'No release available yet. <a href="https://github.com/' + REPO + '/releases">Check GitHub Releases</a>.';
-  }
-}
-
-loadRelease();
-</script>
 </body>
 </html>
