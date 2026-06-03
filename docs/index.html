@@ -106,10 +106,55 @@ footer a:hover{color:var(--ink)}
 
 <div class="section" id="download">
   <div class="section-title">Download</div>
-  <div class="section-sub">Pre-built binaries for all platforms. No LaTeX or Python required.</div>
-  <div id="dl-loading">Fetching latest build…</div>
-  <div id="dl-grid" class="dl-grid" style="display:none"></div>
-  <p id="dl-version" class="version-badge" style="margin-top:1rem"></p>
+  <div class="section-sub">Always the latest build from CI — updated automatically on every commit.</div>
+  <div class="dl-grid">
+
+    <div class="dl-card">
+      <div class="dl-os">Windows</div>
+      <div class="dl-name">Installer</div>
+      <div class="dl-desc">Windows 10/11 x64. Extract the zip, run the <code>.exe</code>, launch from Start menu.</div>
+      <div class="dl-qr">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fnightly.link%2Fjeebuscrossaint%2Festela%2Fworkflows%2Fbuild.yml%2Fmain%2Festela-x86_64-pc-windows-msvc.zip" alt="QR — Windows download" loading="lazy">
+        <span class="dl-qr-label">Scan to download</span>
+      </div>
+      <a href="https://nightly.link/jeebuscrossaint/estela/workflows/build.yml/main/estela-x86_64-pc-windows-msvc.zip" class="dl-btn">⬇ Download</a>
+    </div>
+
+    <div class="dl-card">
+      <div class="dl-os">macOS</div>
+      <div class="dl-name">Apple Silicon (M1 / M2 / M3 / M4)</div>
+      <div class="dl-desc">ARM64 .app bundle. Extract the zip, drag to Applications.</div>
+      <div class="dl-qr">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fnightly.link%2Fjeebuscrossaint%2Festela%2Fworkflows%2Fbuild.yml%2Fmain%2Festela-aarch64-apple-darwin.zip" alt="QR — macOS ARM download" loading="lazy">
+        <span class="dl-qr-label">Scan to download</span>
+      </div>
+      <a href="https://nightly.link/jeebuscrossaint/estela/workflows/build.yml/main/estela-aarch64-apple-darwin.zip" class="dl-btn">⬇ Download</a>
+    </div>
+
+    <div class="dl-card">
+      <div class="dl-os">macOS</div>
+      <div class="dl-name">Intel</div>
+      <div class="dl-desc">x86_64 .app bundle for older Intel Macs. Extract the zip, drag to Applications.</div>
+      <div class="dl-qr">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fnightly.link%2Fjeebuscrossaint%2Festela%2Fworkflows%2Fbuild.yml%2Fmain%2Festela-x86_64-apple-darwin.zip" alt="QR — macOS Intel download" loading="lazy">
+        <span class="dl-qr-label">Scan to download</span>
+      </div>
+      <a href="https://nightly.link/jeebuscrossaint/estela/workflows/build.yml/main/estela-x86_64-apple-darwin.zip" class="dl-btn secondary">⬇ Download</a>
+    </div>
+
+    <div class="dl-card">
+      <div class="dl-os">Linux</div>
+      <div class="dl-name">AppImage + .deb</div>
+      <div class="dl-desc">Extract the zip to find the AppImage (any distro) and .deb (Debian/Ubuntu).</div>
+      <div class="dl-qr">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fnightly.link%2Fjeebuscrossaint%2Festela%2Fworkflows%2Fbuild.yml%2Fmain%2Festela-x86_64-unknown-linux-gnu.zip" alt="QR — Linux download" loading="lazy">
+        <span class="dl-qr-label">Scan to download</span>
+      </div>
+      <a href="https://nightly.link/jeebuscrossaint/estela/workflows/build.yml/main/estela-x86_64-unknown-linux-gnu.zip" class="dl-btn secondary">⬇ Download</a>
+    </div>
+
+  </div>
+  <p class="version-badge" style="margin-top:1rem">Served by <a href="https://nightly.link" target="_blank">nightly.link</a> — always the latest successful build from <a href="https://github.com/jeebuscrossaint/estela/actions" target="_blank">CI</a>.</p>
 </div>
 
 <hr>
@@ -178,88 +223,5 @@ footer a:hover{color:var(--ink)}
   <p style="margin-top:.4rem"><a href="https://github.com/jeebuscrossaint/estela" target="_blank">github.com/jeebuscrossaint/estela</a></p>
 </footer>
 
-<script>
-const REPO = 'jeebuscrossaint/estela';
-
-const PLATFORMS = [
-  {
-    os: 'Windows',
-    name: 'Installer',
-    desc: 'Windows 10/11 x64. Run the .exe installer and launch from the Start menu.',
-    match: a => a.name.endsWith('.exe'),
-    primary: true,
-  },
-  {
-    os: 'macOS',
-    name: 'Apple Silicon (M1 / M2 / M3 / M4)',
-    desc: 'ARM64 .app bundle. Unzip and drag to Applications.',
-    match: a => a.name.includes('aarch64') && a.name.endsWith('.zip'),
-    primary: true,
-  },
-  {
-    os: 'macOS',
-    name: 'Intel',
-    desc: 'x86_64 .app bundle for older Intel Macs. Unzip and drag to Applications.',
-    match: a => a.name.includes('x86_64') && a.name.endsWith('.zip'),
-    primary: false,
-  },
-  {
-    os: 'Linux',
-    name: 'AppImage',
-    desc: 'Universal — runs on any modern Linux distro without installation.',
-    match: a => a.name.endsWith('.AppImage'),
-    primary: true,
-  },
-  {
-    os: 'Linux',
-    name: 'Debian / Ubuntu',
-    desc: '.deb package for Debian-based systems.',
-    match: a => a.name.endsWith('.deb'),
-    primary: false,
-  },
-];
-
-async function loadRelease() {
-  try {
-    const r = await fetch(`https://api.github.com/repos/${REPO}/releases/tags/latest`);
-    if (!r.ok) throw new Error('no release');
-    const release = await r.json();
-
-    document.getElementById('dl-loading').style.display = 'none';
-    document.getElementById('dl-version').textContent =
-      `Built ${new Date(release.published_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})} · ${release.assets.length} files`;
-
-    const grid = document.getElementById('dl-grid');
-    grid.style.display = 'grid';
-
-    for (const p of PLATFORMS) {
-      const asset = release.assets.find(p.match);
-      const card = document.createElement('div');
-      card.className = 'dl-card';
-      const qrBlock = asset
-        ? `<div class="dl-qr">
-             <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(asset.browser_download_url)}" alt="QR code for ${p.os} ${p.name} download" loading="lazy">
-             <span class="dl-qr-label">Scan to download</span>
-           </div>`
-        : '';
-      card.innerHTML = `
-        <div class="dl-os">${p.os}</div>
-        <div class="dl-name">${p.name}</div>
-        <div class="dl-desc">${p.desc}</div>
-        ${qrBlock}
-        ${asset
-          ? `<a href="${asset.browser_download_url}" class="dl-btn${p.primary ? '' : ' secondary'}">⬇ Download</a>`
-          : `<span class="dl-btn secondary" style="opacity:.4;cursor:default">Not available</span>`}
-      `;
-      grid.appendChild(card);
-    }
-  } catch(e) {
-    document.getElementById('dl-loading').innerHTML =
-      'No build available yet. <a href="https://github.com/' + REPO + '/releases" target="_blank">Check GitHub Releases</a>.';
-  }
-}
-
-loadRelease();
-</script>
 </body>
 </html>
