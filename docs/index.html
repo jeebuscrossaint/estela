@@ -54,6 +54,9 @@ nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:.7rem 2r
 .dl-btn.secondary:hover{background:var(--bg3)}
 .dl-btn[disabled]{opacity:.4;pointer-events:none}
 .version-badge{font-family:var(--font-m);font-size:.82rem;color:var(--ink4);margin-top:.2rem}
+.dl-qr{display:flex;flex-direction:column;align-items:center;gap:.35rem;margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--border)}
+.dl-qr img{width:100px;height:100px;border-radius:4px;display:block}
+.dl-qr-label{font-family:var(--font-m);font-size:.72rem;color:var(--ink4);letter-spacing:.05em;text-transform:uppercase}
 
 /* Steps */
 .steps{display:flex;flex-direction:column;gap:1.2rem;margin-top:1.5rem}
@@ -233,10 +236,17 @@ async function loadRelease() {
       const asset = release.assets.find(p.match);
       const card = document.createElement('div');
       card.className = 'dl-card';
+      const qrBlock = asset
+        ? `<div class="dl-qr">
+             <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(asset.browser_download_url)}" alt="QR code for ${p.os} ${p.name} download" loading="lazy">
+             <span class="dl-qr-label">Scan to download</span>
+           </div>`
+        : '';
       card.innerHTML = `
         <div class="dl-os">${p.os}</div>
         <div class="dl-name">${p.name}</div>
         <div class="dl-desc">${p.desc}</div>
+        ${qrBlock}
         ${asset
           ? `<a href="${asset.browser_download_url}" class="dl-btn${p.primary ? '' : ' secondary'}">⬇ Download</a>`
           : `<span class="dl-btn secondary" style="opacity:.4;cursor:default">Not available</span>`}
