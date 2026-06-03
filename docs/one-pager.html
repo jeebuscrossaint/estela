@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ESTELA Exam Builder — One Pager</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fafaf8;--bg2:#f3f2ee;--bg3:#e8e6de;
+  --ink:#1a1916;--ink2:#3d3b35;--ink3:#6b6860;--ink4:#9b9890;
+  --accent:#c8391a;--border:#d8d6ce;
+  --font-d:'DM Serif Display',Georgia,serif;
+  --font-b:'DM Sans',system-ui,sans-serif;
+  --font-m:'DM Mono','Courier New',monospace;
+}
+html,body{height:100%;-webkit-font-smoothing:antialiased}
+body{
+  font-family:var(--font-b);
+  background:var(--bg);
+  color:var(--ink);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:100vh;
+  padding:2rem;
+}
+
+.card{
+  width:100%;
+  max-width:680px;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow:0 4px 32px rgba(0,0,0,.07);
+}
+
+/* Header strip */
+.card-header{
+  background:var(--ink);
+  padding:2rem 2.5rem 1.8rem;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:2rem;
+}
+.header-text{flex:1}
+.badge{
+  font-family:var(--font-m);
+  font-size:.72rem;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.45);
+  margin-bottom:.6rem;
+}
+.app-name{
+  font-family:var(--font-d);
+  font-size:2rem;
+  color:#fff;
+  line-height:1.1;
+  letter-spacing:-.02em;
+}
+.app-name em{font-style:italic;color:var(--accent)}
+.tagline{
+  margin-top:.6rem;
+  font-size:.95rem;
+  color:rgba(255,255,255,.6);
+  line-height:1.5;
+  max-width:340px;
+}
+
+/* QR block */
+.qr-block{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:.5rem;
+  flex-shrink:0;
+}
+.qr-block img{
+  width:110px;
+  height:110px;
+  border-radius:8px;
+  background:#fff;
+  padding:6px;
+  display:block;
+}
+.qr-label{
+  font-family:var(--font-m);
+  font-size:.68rem;
+  color:rgba(255,255,255,.4);
+  text-align:center;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+
+/* Body */
+.card-body{padding:2rem 2.5rem}
+
+/* Features */
+.features{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:.75rem;
+  margin-bottom:1.8rem;
+}
+.feat{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:.85rem 1rem;
+}
+.feat-icon{font-size:1.1rem;margin-bottom:.3rem}
+.feat-title{font-size:.9rem;font-weight:600;color:var(--ink);margin-bottom:.15rem}
+.feat-desc{font-size:.82rem;color:var(--ink3);line-height:1.45}
+
+/* Platforms */
+.section-label{
+  font-family:var(--font-m);
+  font-size:.75rem;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink4);
+  margin-bottom:.6rem;
+}
+.platforms{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.8rem}
+.platform{
+  font-family:var(--font-m);
+  font-size:.8rem;
+  padding:.25rem .65rem;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:4px;
+  color:var(--ink3);
+}
+
+/* Footer row */
+.card-footer{
+  border-top:1px solid var(--border);
+  padding:1rem 2.5rem;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:1rem;
+  flex-wrap:wrap;
+}
+.url{
+  font-family:var(--font-m);
+  font-size:.82rem;
+  color:var(--accent);
+  text-decoration:none;
+}
+.funding{
+  font-family:var(--font-m);
+  font-size:.72rem;
+  color:var(--ink4);
+  text-align:right;
+  line-height:1.5;
+}
+
+@media print{
+  body{padding:0;background:#fff}
+  .card{box-shadow:none;border:none;max-width:100%;border-radius:0}
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+
+  <div class="card-header">
+    <div class="header-text">
+      <div class="badge">UCF Physics · Open Source</div>
+      <div class="app-name">E<em>S</em>TELA<br>Exam Builder</div>
+      <div class="tagline">Build multiple unique exam versions from isomorphic physics problem banks — export to LaTeX or Word in seconds.</div>
+    </div>
+    <div class="qr-block">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fjeebuscrossaint.github.io%2Festela%23download&color=1a1916&bgcolor=ffffff" alt="QR code to download page">
+      <div class="qr-label">Scan to download</div>
+    </div>
+  </div>
+
+  <div class="card-body">
+
+    <div class="features">
+      <div class="feat">
+        <div class="feat-icon">🔍</div>
+        <div class="feat-title">Browse &amp; Preview</div>
+        <div class="feat-desc">Search problem banks by course, topic, or keyword. Preview questions with rendered equations before adding them.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">🔀</div>
+        <div class="feat-title">Multiple Versions</div>
+        <div class="feat-desc">Generate up to 10 unique exam versions automatically. Each version draws different isomorphic problems.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📄</div>
+        <div class="feat-title">Flexible Export</div>
+        <div class="feat-desc">Export to LaTeX (.tex), Word (.docx with native equations), or browser preview — plus answer keys for every version.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">⬇️</div>
+        <div class="feat-title">Built-in Bank Sync</div>
+        <div class="feat-desc">Download problem banks directly from within the app. No manual cloning required.</div>
+      </div>
+    </div>
+
+    <div class="section-label">Available for</div>
+    <div class="platforms">
+      <span class="platform">Windows 10/11</span>
+      <span class="platform">macOS (Apple Silicon)</span>
+      <span class="platform">macOS (Intel)</span>
+      <span class="platform">Linux (AppImage / .deb)</span>
+    </div>
+
+  </div>
+
+  <div class="card-footer">
+    <a href="https://jeebuscrossaint.github.io/estela" class="url">jeebuscrossaint.github.io/estela</a>
+    <div class="funding">NSF Award #2421299 · Gates Foundation INV-076932<br>UCF Department of Physics</div>
+  </div>
+
+</div>
+
+</body>
+</html>

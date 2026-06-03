@@ -1,81 +1,206 @@
-# Sharable Isomorphic Problem Banks for Introductory Physics
-This repository contains isomorphic problem banks for introductory level physics that are created with the assistance of Generative AI. 
-The bank structure is currently designed so that it can be reliably converted into QTI file compatible with CANVAS new Quiz item bank.
-Creation of this repository is sponsored by:
-* NSF-2421299: Collaborative Research: HSI Implementation and Evaluation Project: Infusing Intentionality for Success by Transforming STEM Gateway Courses at Two HSIs Utilizing AI and Big Data.
-* Gates Foundation INV-076932
+# ESTELA Exam Builder
 
+**Build multiple unique physics exam versions from isomorphic problem banks — export to LaTeX or Word in one click.**
 
-## What are isomorphic problem banks and how to use them.
-### Isomorphic problems
-The working definition of "isomorphic problems" are problems that have variations that are:
-* More substantial than simply changing numbers or trivial replacement of nouns. 
-* Involve at least one modification in the problem solution, such as changing a negative sign.
-* Are considered to test the same set of learning objectives for the course, while not significantly changing difficulty (currently this is still a subjective call.)
+ESTELA is a desktop application for physics instructors. It lets you browse a curated bank of isomorphic physics problems, assemble an exam cart, and generate multiple exam versions where every version tests the same concepts but with different problems. Powered by [Tauri](https://tauri.app) and supported by NSF Award #2421299 and the Gates Foundation.
 
-### Isomorphic problem banks
-An isomorphic problem bank is a collection of problems so that any two problems in one bank can be considered as isomorphs according to the above definition. These problem banks are dynamic and can be updated and extended.
+**[⬇ Download for Windows / macOS / Linux](https://jeebuscrossaint.github.io/estela#download)**
 
-### Recommended use of isomorphic problems banks
-* Upload problem banks to your LMS (currently supports Canvas New Quiz)
-* Use as both exam practice and exam item by randomly draw one problem from the bank.
+---
 
-## Structure of Repository
+## What are isomorphic problems?
 
-### Templates
-The [Templates](./Templates/) folder contains templates for problem YAML files and formatting guidance:
+Isomorphic problems share the same physics concept and difficulty level but differ in surface details — different numbers, scenarios, or physical setups — so that any two problems in a bank can be used interchangeably as exam questions without giving an unfair advantage to students who have seen a previous version.
 
-* [Problem-bank-template.yaml](./Templates/Problem-bank-template.yaml) is the template to use for new problem banks. To create a new problem bank, copy this file to the bank folder. This file contains explanation to all components of the problem bank yaml file.
+---
 
-* [YAML_formatting_prompt.md](./Templates/YAML_formatting_prompt.md) contains useful examples and prompt templates to instruct the AI to format the generated problems in the correct yaml format.
+## Features
 
-* [YAML_problem_types.md](./Templates/YAML_problem_types.md): Detailed explanation for each problem type supported by CANVAS new quiz.
+- **Browse & search** — Filter problem banks by course, unit, topic, or free-text keyword. Preview individual questions with fully rendered equations (KaTeX).
+- **Multiple exam versions** — Generate up to 10 unique versions from a single cart. Version A gets question 1 from each bank, Version B gets question 2, and so on. Multiple-choice answer order is also shuffled per version.
+- **Flexible export**
+  - LaTeX (`.tex`) using the `exam` document class
+  - Word (`.docx`) with native OMML equations via bundled Pandoc
+  - Browser preview (KaTeX-rendered HTML)
+  - Bundle ZIP — all versions + answer keys + figures in one archive
+- **Answer keys** — generated automatically alongside every exam version
+- **Built-in bank sync** — download individual courses directly from within the app; no manual cloning needed
+- **Light / dark mode**
 
-### Problem banks by course
-Currently there is [PHY I Mechanics](./PHY%20I%20Mechanics/)
-* [Topics.csv](./PHY%20I%20Mechanics/Topics.csv) is a list of topics typically included for PHY I Mechanics
-* Each unit folder roughly corresponds to one unit of typical PHY I instruction. Each unit folder contains multiple problem bank folders.
-    * Each problem bank folder contains the following components
-        * A YAML file (.yml or .yaml). This is contains the problem bank and problem bank meta-data, and is human-readable.
-        * A QTI file (.zip). This is the file that can be imported into CANVAS New Quiz Item Bank. 
-        * (Optional) Either a Figure.zip or Image.zip file. This contains all the images used for each problem. This doesn't need to be uploaded to CANVAS
-        * (Optional) Folders that contain other related meta-data or backup, older version yaml files.
-    * The yaml and zip file, as well as the problem folder, are named according to the following naming convention:
+---
 
-            Subject-Unit-Abbreviation_of_title_-mmddyy.yaml
-            
-            For example: PHY1-F-1DKINT-091525 corresponds to: Physics 1, Force, 1D Kinematics with Non-Constant Acceleration, created on 09-15-2025
-*Note:* Some earlier folders have yet to be cleaned up.
+## Download
 
-## Problem Bank Creation Workflow
-Follow this workflow to create an isomorphic problem bank that can be imported into Canvas. If you wish to directly use any of the problem banks, skip to step 5.
+Pre-built installers are available for all platforms at:
 
-1. *Setup the problem folder*: 
-    * Create a folder under the intended course and unit. You can give it a temporary name such as "Newton's Laws Problem Draft".
-    * Copy the [Problem-bank-template.yaml](./Templates/Problem-bank-template.yaml) file into your new folder
+**[jeebuscrossaint.github.io/estela](https://jeebuscrossaint.github.io/estela#download)**
 
-2. Complete the yaml file with the assistant of GenAI
-    * Plan and start your problem creation process with GenAI assistance. (for reference see: https://arxiv.org/abs/2508.14755, and also see the existing folders as examples) 
-    * Format the generated problems in the format specified in [YAML_problem_types.md](./Templates/YAML_problem_types.md) and [YAML_formatting_prompt.md](./Templates/YAML_formatting_prompt.md)
-    * Make sure to record each generation prompt. This metadata is critical for understanding the structure of the bank and any future expansion.
-    * Name your problem bank following the comments in the template document.
-    * Save AI-generated data tables or code snippets in a sub-folder for more consistent future expansion of the problem bank.
+| Platform | Format |
+|----------|--------|
+| Windows 10/11 | `.exe` installer |
+| macOS Apple Silicon (M1–M4) | `.app` bundle (zip) |
+| macOS Intel | `.app` bundle (zip) |
+| Linux | AppImage + `.deb` |
 
-3. (Optional) Create a zip file for images
-    * If your problem involves one or more images, you need to store your images in a zip file that doesn't contain sub-folders
-    * The file names of image files should match the names used in the yaml file. 
+Installers are built automatically by CI on every update. No LaTeX distribution or Python install required — Pandoc is bundled.
 
-4. Upload the yaml to the yaml to QTI converter: https://canvas-lti.cdl.ucf.edu/yaml-to-qti/ 
-    * The QTI converter is developed by UCF center for distributed learning. Currently it is available to UCF faculty only, but we are in the process of code reviews and making it open-source.
-    * The converter will return the QTI package in the form of a zip file for download.
+---
 
-5. Upload the QTI package to CANVAS as item banks.
-    * Recommended to only use the problem banks with New Quiz, since traditional quiz do not handle question banks very well and can create many independent copies.
-    1. In CANVAS, go to any course that has item banks enabled (this is the default)
-    2. Go to item banks from the side menu, create a new item bank (with a placeholder name)
-    2. Open the problem bank, click the vertical ... menu in upper-right corner, and select "Import Content"
-    3. Either select the QTI zip file or drag the zip file into the upload dialogue box on the screen. 
-    
+## Getting started
 
+### 1. Get problem banks
 
+Either clone this repository:
 
+```bash
+git clone https://github.com/jeebuscrossaint/estela.git
+```
+
+Or use the **Get Problem Banks** panel inside the app to download individual courses directly from the sidebar.
+
+### 2. Load the repository
+
+Enter the folder path in the **Repository** field in the sidebar and click **Load**. All `.yaml` / `.yml` problem bank files are scanned recursively.
+
+### 3. Build your exam
+
+1. Browse by course and topic, or use the search box.
+2. Click **Preview** on any card to see questions with rendered equations.
+3. Click **+ Add** to add a bank to the cart.
+4. Set an exam title and number of versions.
+5. Click an export button to download.
+
+---
+
+## Repository structure
+
+```
+estela/
+├── docs/                         # GitHub Pages site (download page + one-pager)
+├── frontend/
+│   └── index.html                # Full app UI (HTML + CSS + JS, single file)
+├── src-tauri/
+│   ├── src/main.rs               # All backend logic (Tauri commands)
+│   ├── tauri.conf.json           # App config
+│   └── binaries/                 # Bundled Pandoc binary (gitignored, downloaded by CI)
+├── PHY I Mechanics/              # Problem bank folders, organized by unit
+│   ├── 0_Vector and Math/
+│   ├── 1_1D Motion/
+│   └── ...
+├── Templates/
+│   ├── Problem-bank-template.yaml
+│   ├── YAML_formatting_prompt.md
+│   └── YAML_problem_types.md
+└── .github/workflows/build.yml   # CI — builds all platforms, publishes to releases
+```
+
+---
+
+## Problem bank format
+
+Problem banks are YAML files following the ESTELA schema. See [`Templates/Problem-bank-template.yaml`](./Templates/Problem-bank-template.yaml) for the full format. A minimal example:
+
+```yaml
+bank_info:
+  title: "Newton's Second Law — Horizontal Surface"
+  bank_id: PHY1-F-N2L-091525
+  date_created: 09-15-2025
+  status: ready
+  authors:
+    - Your Name
+
+questions:
+  - numerical:
+      id: q1
+      title: Block on a surface
+      text: "A <latex>5\\,\\text{kg}</latex> block is pushed with a net force of <latex>20\\,\\text{N}</latex>. Find the acceleration."
+      answer:
+        value: 4
+        tolerance: 0.1
+
+  - multiple_choice:
+      id: q2
+      title: Direction of friction
+      text: "A block slides to the right. Kinetic friction acts..."
+      answers:
+        - answer: {text: "to the left", correct: true}
+        - answer: {text: "to the right", correct: false}
+        - answer: {text: "downward", correct: false}
+```
+
+**Naming convention:** `Subject-Unit-Abbreviation-mmddyy.yaml`
+Example: `PHY1-F-N2L-091525` = Physics 1 / Forces / Newton's 2nd Law / Sep 15 2025
+
+### Supported question types
+
+`numerical` · `multiple_choice` · `true_false` · `multiple_answers` · `essay` · `formula` · `fill_in_multiple_blanks` · `ordering` · `categorization` · `hot_spot` · `file_upload`
+
+> **Note:** `categorization` and `hot_spot` are Canvas-only and are flagged as unsupported for paper export.
+
+---
+
+## Creating new problem banks
+
+1. Copy [`Templates/Problem-bank-template.yaml`](./Templates/Problem-bank-template.yaml) into the appropriate course/unit folder.
+2. Use the AI prompts in [`Templates/YAML_formatting_prompt.md`](./Templates/YAML_formatting_prompt.md) to generate and format problems.
+3. Name the file following the convention above.
+4. Load the folder in the app to verify rendering.
+5. (Optional) Upload to Canvas via the [UCF YAML-to-QTI converter](https://canvas-lti.cdl.ucf.edu/yaml-to-qti/).
+
+---
+
+## Building from source
+
+**Prerequisites:**
+
+- [Node.js 18+](https://nodejs.org)
+- [Rust toolchain](https://rustup.rs)
+- Pandoc binary in `src-tauri/binaries/` (see below)
+
+**Get Pandoc (Windows):**
+
+```powershell
+$ver = (Invoke-RestMethod "https://api.github.com/repos/jgm/pandoc/releases/latest").tag_name
+Invoke-WebRequest "https://github.com/jgm/pandoc/releases/download/$ver/pandoc-$ver-windows-x86_64.zip" -OutFile pandoc.zip
+Expand-Archive pandoc.zip -DestinationPath pandoc-tmp -Force
+Copy-Item "pandoc-tmp/pandoc-$ver/pandoc.exe" "src-tauri/binaries/pandoc-x86_64-pc-windows-msvc.exe"
+```
+
+**Get Pandoc (macOS/Linux):**
+
+```bash
+# macOS
+brew install pandoc
+cp "$(brew --prefix)/bin/pandoc" src-tauri/binaries/pandoc-aarch64-apple-darwin  # or x86_64-apple-darwin
+
+# Linux
+apt install pandoc   # then copy binary to src-tauri/binaries/pandoc-x86_64-unknown-linux-gnu
+```
+
+**Run:**
+
+```bash
+npm install
+npm run tauri dev     # development
+npm run tauri build   # production build
+```
+
+---
+
+## Canvas integration
+
+ESTELA exports to LaTeX and Word for print/paper delivery. For Canvas online delivery, upload the QTI zip produced by the [UCF YAML-to-QTI converter](https://canvas-lti.cdl.ucf.edu/yaml-to-qti/) to a Canvas New Quiz item bank.
+
+---
+
+## License
+
+[CC BY-NC 4.0](./LICENSE) — free for educational and non-commercial use.
+
+---
+
+## Funding & acknowledgements
+
+- NSF Award [#2421299](https://www.nsf.gov/awardsearch/showAward?AWD_ID=2421299) — HSI Implementation and Evaluation Project
+- Bill & Melinda Gates Foundation INV-076932
+- UCF Department of Physics
